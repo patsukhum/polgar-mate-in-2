@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Polgar Mate in Two</title>
+<meta name="description" content="Offline trainer for the mate-in-2 problems (#307–1074) from László Polgár's Chess: 5334 Problems.">
+<meta name="theme-color" content="#262421">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mate in 2">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>/*CG_CSS*/</style>
+<style>
+:root {
+  --bg: #f4f1ec; --panel: #ffffff; --ink: #24211d; --muted: #6f685f; --line: #e3ddd3;
+  --accent: #5b8a3a; --good: #3d7a2a; --good-bg: #e8f3e1; --bad: #b3401f; --bad-bg: #fbe9e3;
+  --clean: #629924; --solved: #d9a52a; --revealed: #c9573a; --empty: #e6e1d8;
+  --btn: #efebe4; --btn-h: #e5dfd5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1c1a17; --panel: #262421; --ink: #ece7df; --muted: #a39b8f; --line: #3a3631;
+    --accent: #86b35d; --good: #9bd174; --good-bg: #26331d; --bad: #f08b6c; --bad-bg: #3a221b;
+    --empty: #36322c; --btn: #33302b; --btn-h: #3e3a34;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+header { max-width: 1060px; margin: 0 auto; padding: 14px 16px 6px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+header h1 { font-size: 18px; margin: 0; letter-spacing: -.01em; }
+header .sub { color: var(--muted); font-size: 13px; }
+main { max-width: 1060px; margin: 0 auto; padding: 8px 16px 32px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 820px) { main { grid-template-columns: minmax(0, 1fr); gap: 14px; } }
+.board-wrap { width: 100%; max-width: 640px; justify-self: center; position: relative; }
+#board { width: 100%; aspect-ratio: 1; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+#board .cg-wrap { width: 100%; height: 100%; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.side { display: flex; flex-direction: column; gap: 12px; }
+.ptitle { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ptitle h2 { margin: 0; font-size: 26px; font-variant-numeric: tabular-nums; }
+.pill { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--btn); color: var(--muted); }
+.pill:empty { display: none; }
+.pill.clean { background: var(--clean); color: #fff; }
+.pill.solved { background: var(--solved); color: #2a1f00; }
+.pill.revealed { background: var(--revealed); color: #fff; }
+.turn { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.turn i { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 1px solid #999; display: inline-block; }
+.msg { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--btn); min-height: 44px; }
+.msg.good { background: var(--good-bg); color: var(--good); }
+.msg.bad { background: var(--bad-bg); color: var(--bad); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+button, select, input { font: inherit; color: inherit; }
+.btn { border: 0; background: var(--btn); padding: 9px 14px; border-radius: 8px; cursor: pointer; min-height: 40px; }
+.btn:hover:not(:disabled) { background: var(--btn-h); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); color: #fff; font-weight: 600; flex: 1; }
+.btn.primary:hover { filter: brightness(1.06); background: var(--accent); }
+.nav { display: flex; gap: 8px; align-items: center; }
+.nav input { width: 76px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); text-align: center; }
+.nav select { flex: 1; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); min-width: 0; }
+label.small { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+#solution h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+#book { font-size: 16px; line-height: 1.6; }
+#book .var { color: var(--muted); font-size: 14px; }
+#book .cmt { font-style: italic; color: var(--muted); font-size: 14px; }
+#book .cmt::before { content: "["; } #book .cmt::after { content: "]"; }
+#note { font-size: 13px; color: var(--bad); margin: 8px 0 0; }
+.replay { display: flex; gap: 6px; margin-top: 12px; }
+.replay .btn { flex: 1; padding: 6px; }
+#line { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px; }
+.mv { border: 0; background: transparent; padding: 3px 6px; border-radius: 5px; cursor: pointer; }
+.mv.on { background: var(--accent); color: #fff; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.stats b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+.stats span { font-size: 12px; color: var(--muted); }
+.bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--empty); margin-top: 12px; }
+.bar div { transition: width .3s; }
+#bar-clean { background: var(--clean); } #bar-solved { background: var(--solved); } #bar-revealed { background: var(--revealed); }
+details summary { cursor: pointer; font-size: 13px; color: var(--muted); margin-top: 12px; }
+#grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(11px, 1fr)); gap: 2px; margin-top: 10px; }
+#grid button { aspect-ratio: 1; border: 0; padding: 0; border-radius: 2px; background: var(--empty); cursor: pointer; }
+#grid button.clean { background: var(--clean); } #grid button.solved { background: var(--solved); } #grid button.revealed { background: var(--revealed); }
+#grid button.cur { outline: 2px solid var(--ink); outline-offset: 1px; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.link { background: none; border: 0; color: var(--muted); font-size: 12px; text-decoration: underline; cursor: pointer; padding: 0; margin-top: 10px; }
+#promo { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.45); z-index: 10; border-radius: 4px; }
+#promo[hidden] { display: none; }
+#promo .box { background: var(--panel); padding: 12px; border-radius: 10px; display: flex; gap: 6px; }
+#promo button { width: 64px; height: 64px; border: 0; border-radius: 8px; background: var(--btn); cursor: pointer; font-size: 40px; line-height: 1; }
+footer { max-width: 1060px; margin: 0 auto; padding: 0 16px 24px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Polgár · Mate in Two</h1>
+  <span class="sub">Problems 307–1074 from <i>Chess: 5334 Problems, Combinations and Games</i></span>
+</header>
+<main>
+  <div class="board-wrap">
+    <div id="board"></div>
+    <div id="promo" hidden><div class="box">
+      <button data-p="q" aria-label="Queen">♕</button><button data-p="r" aria-label="Rook">♖</button>
+      <button data-p="b" aria-label="Bishop">♗</button><button data-p="n" aria-label="Knight">♘</button>
+    </div></div>
+  </div>
+  <div class="side">
+    <section class="card">
+      <div class="ptitle"><h2 id="pnum">#</h2><span id="pstatus" class="pill"></span></div>
+      <div class="turn"><i></i> White to move · mate in 2</div>
+      <div id="msg" class="msg"></div>
+      <div class="row">
+        <button class="btn" id="btn-hint">Hint</button>
+        <button class="btn" id="btn-reveal">Show solution</button>
+        <button class="btn" id="btn-retry" hidden>Retry</button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-prev" aria-label="Previous">←</button>
+        <button class="btn primary" id="btn-next">Next puzzle →</button>
+      </div>
+    </section>
+
+    <section class="card" id="solution" hidden>
+      <h3>Book solution</h3>
+      <div id="book"></div>
+      <p id="note" hidden></p>
+      <div class="replay">
+        <button class="btn" id="r-start" aria-label="Start">⏮</button>
+        <button class="btn" id="r-back" aria-label="Back">◀</button>
+        <button class="btn" id="r-fwd" aria-label="Forward">▶</button>
+        <button class="btn" id="r-end" aria-label="End">⏭</button>
+      </div>
+      <div id="line"></div>
+    </section>
+
+    <section class="card">
+      <div class="nav">
+        <div><label class="small" for="jump">Go to</label><input id="jump" type="number" min="307" max="1074" inputmode="numeric"></div>
+        <div style="flex:1;min-width:0"><label class="small" for="mode">Next puzzle picks</label>
+          <select id="mode">
+            <option value="order">In book order</option>
+            <option value="unsolved">Unattempted only</option>
+            <option value="review">Mistakes to review</option>
+            <option value="random">Random unattempted</option>
+          </select></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="stats">
+        <div><b id="stat-done">0</b><span>solved</span></div>
+        <div><b id="stat-acc">—</b><span>first-try</span></div>
+        <div><b id="stat-review">0</b><span>to review</span></div>
+      </div>
+      <div class="bar"><div id="bar-clean"></div><div id="bar-solved"></div><div id="bar-revealed"></div></div>
+      <details id="overview">
+        <summary>All 768 problems</summary>
+        <div id="grid"></div>
+        <div class="legend"><span><i style="background:var(--clean)"></i>First try</span><span><i style="background:var(--solved)"></i>With mistakes</span><span><i style="background:var(--revealed)"></i>Viewed solution</span></div>
+      </details>
+      <button class="link" id="btn-reset">Reset progress</button>
+    </section>
+  </div>
+</main>
+<footer>Positions from martinhaleyt's Lichess studies; solutions from the book. Works offline — progress is saved on this device.</footer>
+<script>/*APP_JS*/</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "polgar-mate-in-2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@lichess-org/chessground": "^10.2.0",
+    "chess.js": "^1.4.0",
+    "esbuild": "^0.28.2"
+  },
+  "private": true
+}
