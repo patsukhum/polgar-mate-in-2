@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js';
 import { Chessground } from '@lichess-org/chessground';
 import PUZZLES from './puzzles.js';
+import { createSync } from './sync.js';
 
 const STORE_KEY = 'polgar-m2-v1';
 const $ = (s) => document.querySelector(s);
@@ -14,12 +15,27 @@ function load() {
   }
 }
 const saved = load();
-const progress = saved.progress || {}; // n -> 'clean' | 'solved' | 'revealed'
+// entries: n -> { s: 'clean' | 'solved' | 'revealed', t: timestamp } (timestamps drive sync merges)
+let entries = saved.entries || {};
+let resetAt = saved.resetAt || 0;
+if (saved.progress && !saved.entries) {
+  for (const [n, s] of Object.entries(saved.progress)) entries[n] = { s, t: 1 };
+}
+const progress = {}; // n -> status, derived from entries
+function rebuildProgress() {
+  for (const k of Object.keys(progress)) delete progress[k];
+  for (const [n, e] of Object.entries(entries)) progress[n] = e.s;
+}
+rebuildProgress();
+function setStatus(n, s) {
+  entries[n] = { s, t: Date.now() };
+  progress[n] = s;
+}
 let mode = saved.mode || 'order';
 let idx = Math.max(0, PUZZLES.findIndex((p) => p.n === saved.current));
 function persist() {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify({ progress, mode, current: PUZZLES[idx].n }));
+    localStorage.setItem(STORE_KEY, JSON.stringify({ entries, resetAt, mode, current: PUZZLES[idx].n }));
   } catch {}
 }
 
@@ -265,8 +281,8 @@ function finish(solved) {
   // never downgrade an earlier first-try solve
   const prev = progress[p.n];
   const rank = { revealed: 0, solved: 1, clean: 2 };
-  if (!prev || (solved && rank[result] > rank[prev]) || (!solved && prev === 'revealed')) progress[p.n] = result;
-  if (!solved && prev === 'clean') progress[p.n] = 'solved';
+  if (!prev || (solved && rank[result] > rank[prev])) setStatus(p.n, result);
+  else if (!solved && prev === 'clean') setStatus(p.n, 'solved');
   $('#pstatus').textContent = statusLabel(progress[p.n]);
   $('#pstatus').className = 'pill ' + progress[p.n];
   $('#btn-hint').disabled = true;
@@ -275,6 +291,7 @@ function finish(solved) {
   persist();
   renderProgress();
   showSolution(p);
+  sync.syncSoon();
 }
 
 // ---------- solution ----------
@@ -450,9 +467,12 @@ $('#r-fwd').onclick = () => step(1);
 $('#r-end').onclick = () => step(99);
 $('#btn-reset').onclick = () => {
   if (confirm('Clear all progress? This cannot be undone.')) {
-    for (const k of Object.keys(progress)) delete progress[k];
+    entries = {};
+    resetAt = Date.now();
+    rebuildProgress();
     persist();
     loadPuzzle(idx);
+    sync.syncSoon(0);
   }
 };
 document.addEventListener('keydown', (e) => {
@@ -462,7 +482,56 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'n' || (e.key === 'Enter' && phase === 'done')) $('#btn-next').click();
 });
 
+// ---------- sync ----------
+const sync = createSync({
+  getState: () => ({ entries, resetAt }),
+  applyState: (st) => {
+    entries = st.entries;
+    resetAt = st.resetAt;
+    rebuildProgress();
+    persist();
+    renderProgress();
+    const cur = progress[PUZZLES[idx].n];
+    $('#pstatus').textContent = cur ? statusLabel(cur) : '';
+    $('#pstatus').className = 'pill ' + (cur || '');
+  },
+  onStatus: renderSync,
+});
+
+function ago(t) {
+  if (!t) return '';
+  const m = Math.round((Date.now() - t) / 60000);
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+}
+function renderSync(st) {
+  const on = st.state !== 'off';
+  $('#sync-setup').hidden = on;
+  $('#sync-on').hidden = !on;
+  const text = {
+    off: '',
+    syncing: 'Syncing…',
+    ok: `Synced ${ago(st.at)}`,
+    offline: `Offline — will sync when you're back online${st.at ? ` (last synced ${ago(st.at)})` : ''}`,
+    error: `Sync failed: ${st.message}`,
+  }[st.state];
+  $('#sync-status').textContent = text;
+  $('#sync-status').className = 'sync-status ' + st.state;
+  $('#sync-dot').className = 'dot ' + st.state;
+}
+$('#sync-connect').onclick = async () => {
+  const token = $('#sync-token').value.trim();
+  if (!token) return $('#sync-token').focus();
+  $('#sync-token').value = '';
+  await sync.connect(token);
+};
+$('#sync-now').onclick = () => sync.sync();
+$('#sync-off').onclick = () => {
+  if (confirm('Stop syncing on this device? Your progress stays here and in the gist.')) sync.disconnect();
+};
+
 loadPuzzle(idx);
+renderSync({ state: sync.connected ? 'syncing' : 'off' });
+if (sync.connected) sync.sync();
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

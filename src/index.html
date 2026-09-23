@@ -97,6 +97,23 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); margin-
 #promo[hidden] { display: none; }
 #promo .box { background: var(--panel); padding: 12px; border-radius: 10px; display: flex; gap: 6px; }
 #promo button { width: 64px; height: 64px; border: 0; border-radius: 8px; background: var(--btn); cursor: pointer; font-size: 40px; line-height: 1; }
+/* board coordinates: drawn inside the edge squares, sized to the board */
+.cg-wrap coords { opacity: 1; font-weight: 600; font-size: clamp(8px, 1.9vw, 12px); line-height: 1; }
+.cg-wrap coords.ranks { left: 0; top: 0; width: 12.5%; height: 100%; }
+.cg-wrap coords.ranks coord { flex: 1 1 0; transform: none; padding: 3px 0 0 3px; text-align: left; }
+.cg-wrap coords.files { left: 0; bottom: 0; width: 100%; height: auto; }
+.cg-wrap coords.files coord { flex: 1 1 0; padding: 0 3px 3px 0; text-align: right; }
+.cg-wrap coords.ranks coord:nth-child(odd), .cg-wrap coords.files coord:nth-child(odd) { color: #f0d9b5; }
+.cg-wrap coords.ranks coord:nth-child(even), .cg-wrap coords.files coord:nth-child(even) { color: #946f51; }
+.sync-head { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--empty); }
+.dot.ok { background: var(--clean); } .dot.syncing { background: var(--solved); } .dot.error { background: var(--revealed); } .dot.offline { background: var(--muted); }
+.sync-status { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.sync-status.error { color: var(--bad); }
+#sync-setup p, #sync-setup ol { font-size: 13px; color: var(--muted); margin: 8px 0; }
+#sync-setup ol { padding-left: 18px; }
+#sync-setup a { color: var(--accent); }
+#sync-token { flex: 1; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
 footer { max-width: 1060px; margin: 0 auto; padding: 0 16px 24px; color: var(--muted); font-size: 12px; }
 </style>
 </head>
@@ -152,6 +169,28 @@ footer { max-width: 1060px; margin: 0 auto; padding: 0 16px 24px; color: var(--m
             <option value="review">Mistakes to review</option>
             <option value="random">Random unattempted</option>
           </select></div>
+      </div>
+    </section>
+
+    <section class="card" id="sync">
+      <div class="sync-head"><span id="sync-dot" class="dot"></span>Sync across devices</div>
+      <div id="sync-setup">
+        <p>Keep progress in step between your Mac and phone using a private GitHub gist.</p>
+        <ol>
+          <li><a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Polgar%20Mate%20in%202" target="_blank" rel="noopener">Create a GitHub token</a> with only the <b>gist</b> box ticked. Set expiration to "No expiration" if you don't want to redo this.</li>
+          <li>Paste it below — use the same token on each device.</li>
+        </ol>
+        <div class="row" style="margin-top:4px">
+          <input id="sync-token" type="password" placeholder="ghp_…" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <button class="btn" id="sync-connect">Connect</button>
+        </div>
+      </div>
+      <div id="sync-on" hidden>
+        <div id="sync-status" class="sync-status"></div>
+        <div class="row">
+          <button class="btn" id="sync-now">Sync now</button>
+          <button class="btn" id="sync-off">Disconnect</button>
+        </div>
       </div>
     </section>
 
